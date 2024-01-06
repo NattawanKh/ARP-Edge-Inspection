@@ -9,5 +9,5 @@
 
 - This program has two tabs. The first tab is used for MAC Address Scanner, and the second is for Edge Devices Inspection. <br> </br>
 
-![!\[Alt text\](image.png)](img/ARP_F1.png)
+![Alt text](img/ARP_F1.png)
 Figure 1 : MAC Address Scanner <br> </br>
