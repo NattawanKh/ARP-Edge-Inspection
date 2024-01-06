@@ -11,7 +11,9 @@
 <p align="center">
 
 ![Alt text](img/ARP_F1.png)
-<br><p align="center"> Figure 1 : MAC Address Scanner </p>  </br>
+<p align="center"> Figure 1 : Edge Devices Scanner Scanner </p> 
 
+![!\[Alt text\](image.png)](img/ARP_F2.png)
+<p align="center"> Figure 2 : Edge Devices Inspection </p>  
 
 </p>
