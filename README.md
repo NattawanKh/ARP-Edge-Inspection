@@ -2,8 +2,9 @@
 
 <H3> Feature </H3>
 
-- Edge Devices Scanner ( Rasberry Pi and Banana Pi) <br>
+- Edge Devices Scanner ( Rasberry Pi and Banana Pi) <br></br>
 - Edge Devices Inspection (Device ID, Device Name, Wlan0 Config, Device Storage and Docker Component)
-</br>
 
 <H1> Overview </H1>
+
+- This program has two tabs. The first tab is used for MAC Address Scanner, and the second is for Edge Devices Inspection. <br> </br>
