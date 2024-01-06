@@ -134,10 +134,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
         hostname = edge_ip[0:15]
         hostname = "".join(hostname.split())
         print(hostname)
-        username = '*******'
+        username = 'WODE-Example'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = '*******'
+            password = 'WODE-Example'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
@@ -312,10 +312,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
         edge_ip = self.ui.edge_ip_comb.currentText()
         hostname = edge_ip[0:15]
         hostname = "".join(hostname.split())
-        username = '*******'
+        username = 'WODE-Example'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = '*******'
+            password = 'WODE-Example'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
@@ -377,10 +377,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
         edge_ip = self.ui.edge_ip_comb.currentText()
         hostname = edge_ip[0:15]
         hostname = "".join(hostname.split())
-        username = '*******'
+        username = 'WODE-Example'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = '*******'
+            password = 'WODE-Example'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
