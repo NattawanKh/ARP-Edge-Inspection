@@ -12,8 +12,10 @@
 
 ![Alt text](img/ARP_F1.png)
 <p align="center"> Figure 1 : Edge Devices Scanner Scanner </p> 
+In Figure 1: Edge Devices Scanner, just click the 'Load ARP Table' button, and this program will display the results on the Data List table
 
 ![!\[Alt text\](image.png)](img/ARP_F2.png)
 <p align="center"> Figure 2 : Edge Devices Inspection </p>  
+In Figure 2: Edge Devices Inspection, the user can select edge devices from the 'Edge IP Address' dropdown and click 'SSH' to inspect the edge device, 'Reboot' to reboot the edge device, or 'Shutdown' to shut down the edge device. The program will then display the inspection results on the Result table
 
 </p>
