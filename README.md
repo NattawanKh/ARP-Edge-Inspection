@@ -16,6 +16,6 @@ In Figure 1: Edge Devices Scanner, just click the 'Load ARP Table' button, and t
 
 ![!\[Alt text\](image.png)](img/ARP_F2.png)
 <p align="center"> Figure 2 : Edge Devices Inspection </p>  
-In Figure 2: Edge Devices Inspection, the user can select edge devices from the 'Edge IP Address' dropdown and click 'SSH' to inspect the edge device, 'Reboot' to reboot the edge device, or 'Shutdown' to shut down the edge device. The program will then display the inspection results on the Result table
+In Figure 2: Edge Devices Inspection, the user can select edge devices from the 'Edge IP Address' dropdown and click 'SSH' to inspect the edge device. The device password is set to my default password, but the user can type their password in the password text box. Additionally, the user can click 'Reboot' to restart the edge device or 'Shutdown' to shut down the edge device. The program will then display the inspection results on the Result table.
 
 </p>
