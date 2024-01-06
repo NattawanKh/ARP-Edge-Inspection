@@ -11,7 +11,6 @@
 <p align="center">
 
 ![Alt text](img/ARP_F1.png)
-
 <br><p align="center"> Figure 1 : MAC Address Scanner </p>  </br>
 
 
