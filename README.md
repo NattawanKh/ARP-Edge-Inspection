@@ -8,6 +8,10 @@
 <H1> Overview </H1>
 
 - This program has two tabs. The first tab is used for MAC Address Scanner, and the second is for Edge Devices Inspection. <br> </br>
-
+<p align="center">
 ![Alt text](img/ARP_F1.png)
-<br align="center"> Figure 1 : MAC Address Scanner  </br>
+
+<br> Figure 1 : MAC Address Scanner  </br>
+
+
+</p>
