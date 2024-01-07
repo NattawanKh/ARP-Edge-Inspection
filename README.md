@@ -11,7 +11,7 @@
 <p align="center">
 
 ![Alt text](img/ARP_F1.png)
-<p align="center"> Figure 1 : Edge Devices Scanner Scanner </p> 
+<p align="center"> Figure 1 : Edge Devices Scanner</p> 
 In Figure 1: Edge Devices Scanner, just click the 'Load ARP Table' button, and this program will display the results on the Data List table <br></br>
 
 ![!\[Alt text\](image.png)](img/ARP_F2.png)
