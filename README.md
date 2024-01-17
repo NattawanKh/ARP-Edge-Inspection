@@ -21,4 +21,4 @@ In Figure 2: Edge Devices Inspection, the user can select edge devices from the 
 </p>
 
 <H1> Issue Update </H1>
-- Application won't work with other internet (user hotspot only).
+- Application won't work with other internet (user hotspot only). <br> </br>
