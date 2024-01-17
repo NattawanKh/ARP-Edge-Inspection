@@ -5,11 +5,13 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from ssh_ui import Ui_MainWindow
 import paramiko
 import subprocess
+import ipaddress
 #=========================================================================================================
 bpi_count = 0
 rpi_count = 0
 cmd_adj  = ''
 cmd = ''
+ipaddress_local = []
 #=========================================================================================================
 class SSHThread(QThread):
     finished = pyqtSignal(list)
@@ -60,10 +62,33 @@ class MyMainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Almost Deploy-TEST")
         # Connect the button click event 
         self.ui.ssh_butt.clicked.connect(lambda : self.run_commands())
-        self.ui.arp_butt.clicked.connect(lambda : self.show_arp_table())
+        self.ui.arp_butt.clicked.connect(lambda : self.scan_ipaddress())
         self.ui.rst_butt.clicked.connect(lambda : self.rst_commands())
         self.ui.shd_butt.clicked.connect(lambda : self.shd_commands())
         self.ssh_thread = None
+    # SCAN IP ADDRESS ======================================================================================================================
+    def scan_ipaddress(self):     
+        start_ip ="192.168.1.0"
+        subnet_mask = "/24"
+        # Create the network
+        net_ip = start_ip + subnet_mask
+        #print(net_ip)
+        ip = ipaddress.ip_network(net_ip)
+        all_hosts = list(ip.hosts())
+        info = subprocess.STARTUPINFO()
+        for i in range(1,254):
+            output = subprocess.Popen(['ping', '-n', '1', '-w', '200', str(all_hosts[i])], stdout=subprocess.PIPE, startupinfo=info).communicate()[0]
+            # -n = count of sent packets   -w = delay (ms)       
+            if "Request timed out" in output.decode('utf-8'):
+                
+                print("\n"+str(all_hosts[i]), "is Offline")
+                print("----------------------------------------")
+                
+            else:
+                # print(str(all_hosts[i]), "is Online ---> ")
+                ipaddress_local.append(str(all_hosts[i]))
+                print(str(all_hosts[i]))
+        self.get_arp_table()
     # GET ARP DATA =========================================================================================================================
     def get_arp_table(self):
         global bpi_count
@@ -133,11 +158,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
         edge_ip = self.ui.edge_ip_comb.currentText()
         hostname = edge_ip[0:15]
         hostname = "".join(hostname.split())
-        print(hostname)
-        username = 'WODE-Example'
+        username = 'trinity'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = 'WODE-Example'
+            password = 'trinity'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
@@ -146,7 +170,7 @@ class MyMainWindow(QtWidgets.QMainWindow):
             return 
         # Specify the commands to run
         cmd = self.ui.edge_ip_comb.currentText()
-        cmd_adj = cmd[17:22]
+        cmd_adj = cmd[16:21]
         print(cmd_adj)
         if cmd_adj.startswith('Ban') :
             commands = [
@@ -187,8 +211,8 @@ class MyMainWindow(QtWidgets.QMainWindow):
         else : 
             print("Exit")
             return
-        print(commands)
         # Create and start the SSH thread
+        self.clear_ui()
         self.ui.ssh_stat_label.setText("  SSH On Progress")
         self.ui.ssh_stat_label.setStyleSheet("color : Green;")
         self.ssh_thread = SSHThread(hostname, username, password, commands)
@@ -259,9 +283,8 @@ class MyMainWindow(QtWidgets.QMainWindow):
                         self.clear_tab()
                         self.ui.ssh_stat_label.setText(" SSH FAIL : Please check your Password")
                         self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-                elif cmd_adj.startswith('anan') :
+                elif cmd_adj.startswith('anana') :
                     mac_id = result[75:93]
-                    print(mac_id)
                     if str(mac_id).startswith("c4:") or str(mac_id).startswith("60:") :
                         self.ui.inspec_tableWidget.setItem(0, 0, QTableWidgetItem(mac_id))
                     elif str(mac_id) == "" :
@@ -293,7 +316,9 @@ class MyMainWindow(QtWidgets.QMainWindow):
                     thing_name = result[14:31]
                     self.ui.inspec_tableWidget.setItem(1, 0, QTableWidgetItem(thing_name))
             if i == 2 :
-                edge_ssid = result[10:16]
+                edge_ssid = result
+                edge_ssid = "".join(edge_ssid.split())
+                edge_ssid = edge_ssid[6:12]
                 self.ui.inspec_tableWidget.setItem(2, 0, QTableWidgetItem(edge_ssid))
             if i == 3 :
                 sd_card = result[16:20]+"B"
@@ -312,10 +337,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
         edge_ip = self.ui.edge_ip_comb.currentText()
         hostname = edge_ip[0:15]
         hostname = "".join(hostname.split())
-        username = 'WODE-Example'
+        username = 'trinity'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = 'WODE-Example'
+            password = 'trinity'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
@@ -337,6 +362,7 @@ class MyMainWindow(QtWidgets.QMainWindow):
             print("Exit")
             return
         # Create and start the SSH thread
+        self.clear_ui()
         self.ui.ssh_stat_label.setText("  Reboot On Progress")
         self.ui.ssh_stat_label.setStyleSheet("color : Green;")
         self.ssh_thread = SSHThread(hostname, username, password, commands)
@@ -377,10 +403,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
         edge_ip = self.ui.edge_ip_comb.currentText()
         hostname = edge_ip[0:15]
         hostname = "".join(hostname.split())
-        username = 'WODE-Example'
+        username = 'trinity'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = 'WODE-Example'
+            password = 'trinity'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
