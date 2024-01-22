@@ -91,7 +91,7 @@
          <x>10</x>
          <y>30</y>
          <width>671</width>
-         <height>271</height>
+         <height>251</height>
         </rect>
        </property>
        <property name="font">
@@ -162,17 +162,71 @@
         <string>Status :</string>
        </property>
       </widget>
+      <widget class="QProgressBar" name="progressBar">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>290</y>
+         <width>651</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777213</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <stylestrategy>PreferAntialias</stylestrategy>
+        </font>
+       </property>
+       <property name="locale">
+        <locale language="English" country="UnitedStates"/>
+       </property>
+       <property name="value">
+        <number>24</number>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="textVisible">
+        <bool>true</bool>
+       </property>
+       <property name="invertedAppearance">
+        <bool>false</bool>
+       </property>
+      </widget>
      </widget>
-     <widget class="QWidget" name="verticalLayoutWidget">
+     <widget class="QWidget" name="horizontalLayoutWidget_2">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>380</y>
+        <x>9</x>
+        <y>369</y>
         <width>691</width>
-        <height>43</height>
+        <height>51</height>
        </rect>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QPushButton" name="scan_ip_butt">
+         <property name="font">
+          <font>
+           <family>SCG</family>
+           <pointsize>15</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color : #00B0BA ; color : white;</string>
+         </property>
+         <property name="text">
+          <string>Routering</string>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QPushButton" name="arp_butt">
          <property name="font">

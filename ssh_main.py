@@ -1,21 +1,47 @@
 import sys
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal
 from ssh_ui import Ui_MainWindow
 import paramiko
 import subprocess
 import ipaddress
-#=========================================================================================================
+#===================================================================================================================
 bpi_count = 0
 rpi_count = 0
 cmd_adj  = ''
 cmd = ''
 ipaddress_local = []
-#=========================================================================================================
+#IP Scanner Thread =================================================================================================
+class Worker(QThread):
+    update_signal = pyqtSignal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def run(self):
+        start_ip = "192.168.1.0"
+        subnet_mask = "/24"
+        net_ip = start_ip + subnet_mask
+        ip = ipaddress.ip_network(net_ip)
+        all_hosts = list(ip.hosts())
+        info = subprocess.STARTUPINFO()
+
+        for i in range(1, 254):
+            percentage = int(0.396 * i)
+            output = subprocess.Popen(['ping', '-n', '1', '-w', '200', str(all_hosts[i])], stdout=subprocess.PIPE,
+                                      startupinfo=info).communicate()[0]
+
+            if "Request timed out" in output.decode('utf-8'):
+                self.update_signal.emit(percentage)
+            elif i == 254:
+                self.update_signal.emit(percentage)
+                break
+            else:
+                self.update_signal.emit(percentage)
+#SSH Thread =================================================================================================
 class SSHThread(QThread):
     finished = pyqtSignal(list)
-
     def __init__(self, hostname, username, password, commands):
         super().__init__()
         self.hostname = hostname
@@ -62,33 +88,30 @@ class MyMainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Almost Deploy-TEST")
         # Connect the button click event 
         self.ui.ssh_butt.clicked.connect(lambda : self.run_commands())
-        self.ui.arp_butt.clicked.connect(lambda : self.scan_ipaddress())
+        self.ui.arp_butt.clicked.connect(lambda : self.show_arp_table())
         self.ui.rst_butt.clicked.connect(lambda : self.rst_commands())
         self.ui.shd_butt.clicked.connect(lambda : self.shd_commands())
         self.ssh_thread = None
-    # SCAN IP ADDRESS ======================================================================================================================
-    def scan_ipaddress(self):     
-        start_ip ="192.168.1.0"
-        subnet_mask = "/24"
-        # Create the network
-        net_ip = start_ip + subnet_mask
-        #print(net_ip)
-        ip = ipaddress.ip_network(net_ip)
-        all_hosts = list(ip.hosts())
-        info = subprocess.STARTUPINFO()
-        for i in range(1,254):
-            output = subprocess.Popen(['ping', '-n', '1', '-w', '200', str(all_hosts[i])], stdout=subprocess.PIPE, startupinfo=info).communicate()[0]
-            # -n = count of sent packets   -w = delay (ms)       
-            if "Request timed out" in output.decode('utf-8'):
-                
-                print("\n"+str(all_hosts[i]), "is Offline")
-                print("----------------------------------------")
-                
-            else:
-                # print(str(all_hosts[i]), "is Online ---> ")
-                ipaddress_local.append(str(all_hosts[i]))
-                print(str(all_hosts[i]))
-        self.get_arp_table()
+        self.worker_thread = Worker(self)
+        self.worker_thread.update_signal.connect(self.update_status)
+        self.ui.scan_ip_butt.clicked.connect(lambda : self.start_scan())
+    # IP Scan Function =====================================================================================================================
+    def update_status(self, percentage):  # Update IP Scannig in Percentage
+        self.ui.progressBar.setValue(percentage)
+        # Scanning Status Label  ====================================
+        if percentage == 100 :  
+            self.ui.arp_stat_label.setText("Scanning Done")
+            self.ui.arp_stat_label.setStyleSheet("color : Green ;")
+        elif percentage %2 == 0:
+            self.ui.arp_stat_label.setText("Scanning Inprogress..")
+            self.ui.arp_stat_label.setStyleSheet("color : Orange ;")         
+        else :
+            self.ui.arp_stat_label.setText("Scanning Inprogress...")
+            self.ui.arp_stat_label.setStyleSheet("color : Orange ;")
+        #============================================================
+    def start_scan(self):
+        self.ui.progressBar.setValue(0)   # Start Thread for Scannig
+        self.worker_thread.start()
     # GET ARP DATA =========================================================================================================================
     def get_arp_table(self):
         global bpi_count
@@ -109,18 +132,20 @@ class MyMainWindow(QtWidgets.QMainWindow):
                     type_device = parts[2]
                     if parts[2] == 'static' or parts[2] == 'dynamic'  :
                         if parts[1].startswith('c4-3c-b0') or parts[1].startswith('60-fb-00') :
-                            parts[2] = 'Banana Pi'
+                            parts[2] = 'BPi'
+                            print(parts[1] +' : ' + parts[2])
                             type_device = parts[2]
                             arp_entries.append({'IP Address': ip_address, 'MAC Address': mac_address, 'Type Device' : type_device})
                             bpi_count = len(parts[2])
-                            combo_show = ip_address + " [" + type_device + "]"
+                            combo_show = " [" + type_device + "]" + ip_address
                             self.ui.edge_ip_comb.addItem(combo_show)
                         elif parts[1].startswith('e4-5f-01') or parts[1].startswith('d8-3a-dd') :  # Wait for Device #####################################################
-                            parts[2] = 'RasPi'
+                            parts[2] = 'RPi'
+                            print(parts[1] + ' : ' + parts[2])
                             type_device = parts[2]
                             arp_entries.append({'IP Address': ip_address, 'MAC Address': mac_address, 'Type Device' : type_device})
                             rpi_count = len(parts[2])
-                            combo_show = ip_address + " [" + type_device + "]" 
+                            combo_show = " [" + type_device + "]" + ip_address
                             self.ui.edge_ip_comb.addItem(combo_show )
                         else :
                             pass
@@ -151,17 +176,18 @@ class MyMainWindow(QtWidgets.QMainWindow):
                 self.ui.arp_tableWidget.setItem(row, 1, ip_item)
                 self.ui.arp_tableWidget.setItem(row, 2, type_item)
     #=========================================================================================================================================
-    # RUN SSH Command ====================================================================
+    # RUN SSH Command ========================================================================================================================
     def run_commands(self):
         global cmd_adj
         # Replace these values with your Raspberry Pi's details
         edge_ip = self.ui.edge_ip_comb.currentText()
-        hostname = edge_ip[0:15]
+        hostname = edge_ip[6:]
+        print(hostname)
         hostname = "".join(hostname.split())
-        username = 'ExampleSSH'
+        username = 'NK_Test'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = 'ExampleSSH'
+            password = 'NK_Test'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
@@ -170,9 +196,9 @@ class MyMainWindow(QtWidgets.QMainWindow):
             return 
         # Specify the commands to run
         cmd = self.ui.edge_ip_comb.currentText()
-        cmd_adj = cmd[16:21]
+        cmd_adj = cmd[2:5]
         print(cmd_adj)
-        if cmd_adj.startswith('Ban') :
+        if cmd_adj.startswith('BPi') :
             commands = [
                 'sudo ifconfig | grep "txqueuelen 1000"',
                 'sudo cat GreengrassInstaller/config.yaml | grep "thingName" ',
@@ -181,27 +207,9 @@ class MyMainWindow(QtWidgets.QMainWindow):
                 ' docker ps | wc -l',
                 'docker ps --format "table {{.Names}}"',
             ]
-        elif cmd_adj.startswith('Ras') :
+        elif cmd_adj.startswith('RPi') :
             commands = [
                 'sudo cat /proc/cpuinfo | grep "Serial"',
-                'sudo cat GreengrassInstaller/config.yaml | grep "thingName" ',
-                'sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep "ssid"',
-                'sudo df -h | grep "/dev/" ',
-                ' docker ps | wc -l',
-                'docker ps --format "table {{.Names}}"',
-            ]
-        elif cmd_adj.startswith('asPi') :
-            commands = [
-                'sudo cat /proc/cpuinfo | grep "Serial"',
-                'sudo cat GreengrassInstaller/config.yaml | grep "thingName" ',
-                'sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep "ssid"',
-                'sudo df -h | grep "/dev/" ',
-                ' docker ps | wc -l',
-                'docker ps --format "table {{.Names}}"',
-            ]
-        elif cmd_adj.startswith('anan') :
-            commands = [
-                'sudo ifconfig | grep "txqueuelen 1000"',
                 'sudo cat GreengrassInstaller/config.yaml | grep "thingName" ',
                 'sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep "ssid"',
                 'sudo df -h | grep "/dev/" ',
@@ -212,6 +220,7 @@ class MyMainWindow(QtWidgets.QMainWindow):
             print("Exit")
             return
         # Create and start the SSH thread
+        print(commands)
         self.clear_ui()
         self.ui.ssh_stat_label.setText("  SSH On Progress")
         self.ui.ssh_stat_label.setStyleSheet("color : Green;")
@@ -232,7 +241,7 @@ class MyMainWindow(QtWidgets.QMainWindow):
         for i, (command, result) in enumerate(zip(commands, results)):
             if i == 0 :
                 mac_id = result
-                if cmd_adj.startswith('Ban') :
+                if cmd_adj.startswith('BPi') : # in DB
                     mac_id = result[75:93]
                     if str(mac_id).startswith("c4:") or str(mac_id).startswith("60:") :
                         self.ui.inspec_tableWidget.setItem(0, 0, QTableWidgetItem(mac_id))
@@ -251,21 +260,7 @@ class MyMainWindow(QtWidgets.QMainWindow):
                         self.clear_tab()
                         self.ui.ssh_stat_label.setText(" SSH FAIL : Please check your Password")
                         self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-                elif cmd_adj.startswith('Ras') :
-                    mac_id = result[10:26]
-                    if str(mac_id).startswith("10000") :
-                        self.ui.inspec_tableWidget.setItem(0, 0, QTableWidgetItem(mac_id))
-                    elif str(mac_id) == "" :
-                        self.clear_tab()
-                        self.ui.ssh_stat_label.setText(" SSH FAIL : Please check your Password")
-                        self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-                        break
-                    elif str(mac_id).startswith(' connected party d') :
-                        self.clear_tab()
-                        self.ui.ssh_stat_label.setText(" This Device Already OFFLINE : Ensure IT")
-                        self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-                        break
-                elif cmd_adj.startswith('asPi') :
+                elif cmd_adj.startswith('RPi') : # in DB
                     mac_id = result[10:26]
                     if str(mac_id).startswith("10000") :
                         self.ui.inspec_tableWidget.setItem(0, 0, QTableWidgetItem(mac_id))
@@ -283,47 +278,23 @@ class MyMainWindow(QtWidgets.QMainWindow):
                         self.clear_tab()
                         self.ui.ssh_stat_label.setText(" SSH FAIL : Please check your Password")
                         self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-                elif cmd_adj.startswith('anana') :
-                    mac_id = result[75:93]
-                    if str(mac_id).startswith("c4:") or str(mac_id).startswith("60:") :
-                        self.ui.inspec_tableWidget.setItem(0, 0, QTableWidgetItem(mac_id))
-                    elif str(mac_id) == "" :
-                        self.clear_tab()
-                        self.ui.ssh_stat_label.setText(" SSH FAIL : Please check your Password")
-                        self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-                        break
-                    elif str(mac_id).startswith(' connected party d') :
-                        self.clear_tab()
-                        self.ui.ssh_stat_label.setText(" This Device Already OFFLINE : Ensure IT")
-                        self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-                        break
-                    else :
-                        self.clear_tab()
-                        self.ui.ssh_stat_label.setText(" SSH FAIL : Please check your Password")
-                        self.ui.ssh_stat_label.setStyleSheet("color : RED;")
-            if i == 1 :
+            if i == 1 : # in DB
                 thing_name = result
-                if cmd_adj.startswith('Ban') :
+                if cmd_adj.startswith('BPi') :
                     thing_name = result[14:31]
                     self.ui.inspec_tableWidget.setItem(1, 0, QTableWidgetItem(thing_name))
-                elif cmd_adj.startswith('Ras') :
+                elif cmd_adj.startswith('RPi') :
                     thing_name = result[14:33]
                     self.ui.inspec_tableWidget.setItem(1, 0, QTableWidgetItem(thing_name))
-                elif cmd_adj.startswith('asPi') :
-                    thing_name = result[14:33]
-                    self.ui.inspec_tableWidget.setItem(1, 0, QTableWidgetItem(thing_name))
-                elif cmd_adj.startswith('anan') :
-                    thing_name = result[14:31]
-                    self.ui.inspec_tableWidget.setItem(1, 0, QTableWidgetItem(thing_name))
-            if i == 2 :
+            if i == 2 : # in DB
                 edge_ssid = result
                 edge_ssid = "".join(edge_ssid.split())
                 edge_ssid = edge_ssid[6:12]
                 self.ui.inspec_tableWidget.setItem(2, 0, QTableWidgetItem(edge_ssid))
-            if i == 3 :
+            if i == 3 : # in DB
                 sd_card = result[16:20]+"B"
                 self.ui.inspec_tableWidget.setItem(3, 0, QTableWidgetItem(sd_card))
-            if i == 4 :
+            if i == 4 : # in DB
                 docker_num = result[0:1]
                 docker_int= int(docker_num)-1
                 self.ui.inspec_tableWidget.setItem(4, 0, QTableWidgetItem(str(docker_int)))
@@ -335,12 +306,13 @@ class MyMainWindow(QtWidgets.QMainWindow):
     def rst_commands(self):
         # Replace these values with Pi's details
         edge_ip = self.ui.edge_ip_comb.currentText()
-        hostname = edge_ip[0:15]
+        hostname = edge_ip[6:]
+        print(hostname +  ' :RST')
         hostname = "".join(hostname.split())
-        username = 'ExampleSSH'
+        username = 'NK_Test'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = 'ExampleSSH'
+            password = 'NK_Test'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
@@ -349,14 +321,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
             return 
         # Specify the commands to run
         cmd = self.ui.edge_ip_comb.currentText()
-        cmd_adj = cmd[17:22]
-        if cmd_adj.startswith('Ban') :
+        cmd_adj = cmd[2:5]
+        if cmd_adj.startswith('BPi') :
             commands = ['sudo ifconfig | grep "txqueuelen 1000"' , 'sudo reboot']
-        elif cmd_adj.startswith('Ras') :
-            commands = ['sudo cat /proc/cpuinfo | grep "Serial"' , 'sudo reboot']
-        elif cmd_adj.startswith('asPi') :
-            commands = ['sudo ifconfig | grep "txqueuelen 1000"' , 'sudo reboot']
-        elif cmd_adj.startswith('anan') :
+        elif cmd_adj.startswith('RPi') :
             commands = ['sudo cat /proc/cpuinfo | grep "Serial"' , 'sudo reboot']
         else : 
             print("Exit")
@@ -375,13 +343,9 @@ class MyMainWindow(QtWidgets.QMainWindow):
         for i, (command, result) in enumerate(zip(commands, results)):
             if i == 0 :
                 mac_id = result
-                if cmd_adj.startswith('Ban') :
+                if cmd_adj.startswith('BPi') :
                     mac_id = result[75:93]
-                elif cmd_adj.startswith('Ras') :
-                    mac_id = result[10:26]
-                elif cmd_adj.startswith('anan') :
-                    mac_id = result[75:93]
-                elif cmd_adj.startswith('asPi') :
+                elif cmd_adj.startswith('RPi') :
                     mac_id = result[10:26]
                 if str(mac_id) == "" :
                     self.clear_tab()
@@ -401,12 +365,13 @@ class MyMainWindow(QtWidgets.QMainWindow):
     def shd_commands(self):
         # Replace these values with your Raspberry Pi's details
         edge_ip = self.ui.edge_ip_comb.currentText()
-        hostname = edge_ip[0:15]
+        hostname = edge_ip[6:]
         hostname = "".join(hostname.split())
-        username = 'ExampleSSH'
+        print(hostname +  ' :SHD')
+        username = 'NK_Test'
         password = self.ui.edge_pass_op.text()
         if password == '' :
-            password = 'ExampleSSH'
+            password = 'NK_Test'
         else :
             password = self.ui.edge_pass_op.text()
         if hostname == '' :
@@ -416,14 +381,10 @@ class MyMainWindow(QtWidgets.QMainWindow):
 
         # Specify the commands to run
         cmd = self.ui.edge_ip_comb.currentText()
-        cmd_adj = cmd[17:22]
-        if cmd_adj.startswith('Ban') :
+        cmd_adj = cmd[2:5]
+        if cmd_adj.startswith('BPi') :
             commands = ['sudo ifconfig | grep "txqueuelen 1000"' , 'sudo shutdown now']
-        elif cmd_adj.startswith('Ras') :
-            commands = ['sudo cat /proc/cpuinfo | grep "Serial"' , 'sudo shutdown now']
-        elif cmd_adj.startswith('anan') :
-            commands = ['sudo ifconfig | grep "txqueuelen 1000"' , 'sudo shutdown now']
-        elif cmd_adj.startswith('asPi') :
+        elif cmd_adj.startswith('RPi') :
             commands = ['sudo cat /proc/cpuinfo | grep "Serial"' , 'sudo shutdown now']
         else : 
             print("Exit")
@@ -441,13 +402,9 @@ class MyMainWindow(QtWidgets.QMainWindow):
         for i, (command, result) in enumerate(zip(commands, results)):
             if i == 0 :
                 mac_id = result
-                if cmd_adj.startswith('Ban') :
+                if cmd_adj.startswith('BPi') :
                     mac_id = result[75:93]
-                elif cmd_adj.startswith('Ras') :
-                    mac_id = result[10:26]
-                elif cmd_adj.startswith('anan') :
-                    mac_id = result[75:93]
-                elif cmd_adj.startswith('asPi') :
+                elif cmd_adj.startswith('RPi') :
                     mac_id = result[10:26]
                 if str(mac_id) == "" :
                     self.clear_tab()
